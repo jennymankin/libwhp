@@ -358,7 +358,7 @@ impl ConvertMsrIndex for WHV_REGISTER_NAME {
         match from {
             WHV_REGISTER_NAME::WHvX64RegisterTsc => Some(msr_index::MSR_IA32_TSC),
             WHV_REGISTER_NAME::WHvX64RegisterEfer => Some(msr_index::MSR_EFER),
-            WHV_REGISTER_NAME::WHvX64RegisterKernelGsBase => Some(msr_index::MSR_GS_BASE),
+            WHV_REGISTER_NAME::WHvX64RegisterKernelGsBase => Some(msr_index::MSR_KERNEL_GS_BASE),
             WHV_REGISTER_NAME::WHvX64RegisterApicBase => Some(msr_index::MSR_IA32_APICBASE),
             WHV_REGISTER_NAME::WHvX64RegisterPat => Some(msr_index::MSR_IA32_CR_PAT),
             WHV_REGISTER_NAME::WHvX64RegisterSysenterCs => Some(msr_index::MSR_IA32_SYSENTER_CS),
@@ -376,7 +376,7 @@ impl ConvertMsrIndex for WHV_REGISTER_NAME {
         match arch_index {
             msr_index::MSR_IA32_TSC => Some(WHV_REGISTER_NAME::WHvX64RegisterTsc),
             msr_index::MSR_EFER => Some(WHV_REGISTER_NAME::WHvX64RegisterEfer),
-            msr_index::MSR_GS_BASE => Some(WHV_REGISTER_NAME::WHvX64RegisterKernelGsBase),
+            msr_index::MSR_KERNEL_GS_BASE => Some(WHV_REGISTER_NAME::WHvX64RegisterKernelGsBase),
             msr_index::MSR_IA32_APICBASE => Some(WHV_REGISTER_NAME::WHvX64RegisterApicBase),
             msr_index::MSR_IA32_CR_PAT => Some(WHV_REGISTER_NAME::WHvX64RegisterPat),
             msr_index::MSR_IA32_SYSENTER_CS => Some(WHV_REGISTER_NAME::WHvX64RegisterSysenterCs),

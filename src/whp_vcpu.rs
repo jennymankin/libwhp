@@ -468,12 +468,17 @@ impl Vcpu for WhpVirtualProcessor {
         // Translate each MSR index into its corresponding MSR NAME
         unsafe {
             for entry in msrs.entries.as_slice(num_msrs).iter() {
-                let reg_name = WHV_REGISTER_NAME::from_portable(entry.index).unwrap();
-                msr_names.push(reg_name);
+                match WHV_REGISTER_NAME::from_portable(entry.index) {
+                    Some(reg_name) => {
+                        msr_names.push(reg_name);
 
-                // Push a corresponding blank MSR Value to the value array
-                let reg_value: WHV_REGISTER_VALUE = Default::default();
-                msr_values.push(reg_value);
+                        // Push a corresponding blank MSR Value to the value array
+                        let reg_value: WHV_REGISTER_VALUE = Default::default();
+                        msr_values.push(reg_value);
+                    }
+                    None => println!("Ignoring unsupported msr: {:#x}",
+                                     entry.index)
+                }
             }
         }
 
@@ -483,11 +488,18 @@ impl Vcpu for WhpVirtualProcessor {
             .vp
             .get_registers(&msr_names, &mut msr_values)
             .map_err(|_| io::Error::last_os_error())?;
-        
+
         // Now re-insert the returned MSR data in the original MsrEntries
         unsafe {
-            for (idx, entry) in msrs.entries.as_mut_slice(num_msrs).iter_mut().enumerate() {
-                entry.data = msr_values[idx].Reg64;
+            let mut idx = 0;
+            for entry in msrs.entries.as_mut_slice(num_msrs).iter_mut() {
+                match WHV_REGISTER_NAME::from_portable(entry.index) {
+                    Some(_) => {
+                        entry.data = msr_values[idx].Reg64;
+                        idx += 1;
+                    }
+                    None => {}
+                }
             }
         }
 
@@ -501,12 +513,17 @@ impl Vcpu for WhpVirtualProcessor {
 
         unsafe {
             for entry in msrs.entries.as_slice(msrs.nmsrs as usize).iter() {
-                let reg_name = WHV_REGISTER_NAME::from_portable(entry.index).unwrap();
-                msr_names.push(reg_name);
+                match WHV_REGISTER_NAME::from_portable(entry.index) {
+                    Some(reg_name) => {
+                        msr_names.push(reg_name);
 
-                let mut reg_value: WHV_REGISTER_VALUE = Default::default();
-                reg_value.Reg64 = entry.data;
-                msr_values.push(reg_value);
+                        let mut reg_value: WHV_REGISTER_VALUE = Default::default();
+                        reg_value.Reg64 = entry.data;
+                        msr_values.push(reg_value);
+                    },
+                    None => println!("Ignoring unsupported msr: {:#x}",
+                                     entry.index)
+                }
             }
         }
 
@@ -957,6 +974,12 @@ mod tests {
                 index: msr_index::MSR_IA32_SYSENTER_EIP,
                 reserved: 0,
                 data: 7890
+            },
+            MsrEntry {
+                // This is supposed to be an unsupported msr.
+                index: 0xffff,
+                reserved: 0,
+                data: 0xff
             }
         ];
         let array_len = entries.len();
@@ -1010,6 +1033,10 @@ mod tests {
             MsrEntry {
                 index: msr_index::MSR_IA32_SYSENTER_EIP,
                 ..Default::default()
+            },
+            MsrEntry {
+                index: 0xffff,
+                ..Default::default()
             }
         ];
 
@@ -1047,11 +1074,24 @@ mod tests {
                     out_entry.index, 
                     "MSR index gotten from vCPU did not match input"
                 );
-                assert_eq!(
-                    entry.data, 
-                    out_entry.data, 
-                    "MSR data gotten from vCPU did not match input"
-                );
+
+
+                match WHV_REGISTER_NAME::from_portable(entry.index) {
+                    Some(_) => {
+                        assert_eq!(
+                            entry.data,
+                            out_entry.data,
+                            "MSR data gotten from vCPU did not match input"
+                        );
+                    },
+                    None => {
+                        assert_eq!(
+                            0,
+                            out_entry.data,
+                            "Unsupported MSR data is supposed to be null."
+                        );
+                    }
+                }
             }
         }
     }
